@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply bg-base text-white font-sans antialiased;
+  background-image: radial-gradient(circle at 20% 0%, rgba(76, 29, 149, 0.15), transparent 40%),
+    radial-gradient(circle at 80% 10%, rgba(79, 124, 255, 0.1), transparent 35%);
+  background-attachment: fixed;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a42;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a5a;
+}
+
+/* Hide scrollbar for horizontal rail rows but keep functionality */
+.rail::-webkit-scrollbar {
+  display: none;
+}
+.rail {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+a, button {
+  outline-offset: 2px;
+}
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 2px solid #8b5cf6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
