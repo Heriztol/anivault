@@ -13,11 +13,19 @@ function schedule(task) {
   return queue
 }
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isTransientStatus(status) {
+  return status === 408 || status === 429 || status >= 500
+}
+
 // --- Tiny in-memory cache (per session) ----------------------------------
 const cache = new Map()
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
-async function request(path, { useCache = true } = {}) {
+async function request(path, { useCache = true, fallbackData = null } = {}) {
   const key = path
   const cached = cache.get(key)
   if (useCache && cached && Date.now() - cached.time < CACHE_TTL) {
@@ -25,15 +33,33 @@ async function request(path, { useCache = true } = {}) {
   }
 
   const doFetch = async (retriesLeft = 3) => {
-    const res = await fetch(`${BASE_URL}${path}`)
-    if (res.status === 429 && retriesLeft > 0) {
-      await new Promise((r) => setTimeout(r, 1200))
-      return doFetch(retriesLeft - 1)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
+
+    try {
+      const res = await fetch(`${BASE_URL}${path}`, { signal: controller.signal })
+      if (isTransientStatus(res.status)) {
+        if (retriesLeft > 0) {
+          await delay(1000)
+          return doFetch(retriesLeft - 1)
+        }
+        console.warn(`Jikan request failed (${res.status}) for ${path}; using empty fallback`)
+        return { data: fallbackData }
+      }
+      if (!res.ok) {
+        throw new Error(`Jikan request failed (${res.status}) for ${path}`)
+      }
+      return res.json()
+    } catch (error) {
+      if (retriesLeft > 0 && (error.name === 'AbortError' || error.message?.includes('fetch') || error.message?.includes('network'))) {
+        await delay(800)
+        return doFetch(retriesLeft - 1)
+      }
+      console.warn(`Jikan request failed for ${path}; using empty fallback`, error)
+      return { data: fallbackData }
+    } finally {
+      clearTimeout(timeoutId)
     }
-    if (!res.ok) {
-      throw new Error(`Jikan request failed (${res.status}) for ${path}`)
-    }
-    return res.json()
   }
 
   const data = await schedule(() => doFetch())
